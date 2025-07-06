@@ -10,28 +10,45 @@ esphome:
     #   - https://github.com/platformio/platform-espressif32.git#feature/arduino-upstream
     # platform_packages:
     #   - framework-arduinoespressif32 @ https://github.com/espressif/arduino-esp32.git#2.0.2
+# esp32:
+#   board: esp32-s3-devkitc-1
+#   framework:
+#     type: arduino
+
 
 esp32:
-  board: esp32dev
-  variant: esp32s2
+  
+  board: adafruit_funhouse_esp32s2
   framework:
     type: esp-idf
+#    type: arduino
 
+
+# Enable logging
 logger:
 
+# Enable Home Assistant API
 api:
+  encryption:
+    key: "U0+KYMd1UQwjW1vetL4/8I0ZclL/bU4sIUdrI8XWPZ4="
 
 ota:
-  password: !secret ota_password
+  - platform: esphome
+    password: "dfaa6ca07bdf1975302bcd0086531860"
 
 wifi:
   ssid: !secret wifi_ssid
   password: !secret wifi_password
 
+
   # Enable fallback hotspot (captive portal) in case wifi connection fails
   ap:
     ssid: "Funhouse Fallback Hotspot"
-    password: !secret fallback_ap_password
+    password: !secret wifi_password_ths
+
+captive_portal:
+
+
 
 # todo Not available when using the esp-idf framework.
 # captive_portal:
@@ -39,22 +56,58 @@ wifi:
 i2c:
   sda: GPIO34
   scl: GPIO33
+  scan: True
+  #some versions of idf don't work
+  frequency: 100khz
+
+
+
+external_components:
+  - source:
+      type: local
+      path: external_components
+    components:
+      - empty_i2c_sensor
+    refresh: always
+
+
 
 sensor:
-  - platform: mcp9808
-    name: "Temperature"
-    id: temperature_sensor
+  - platform: dps310
+    temperature:
+      name: "Temperature dps310"
+    pressure:
+      name: "Pressure"
+    address: 0x77
+    update_interval: 60s
 
-# Capacitive touch is not yet available for the ESP32-S2.
-# esp32_touch:
-#   setup_mode: false
+  - platform: aht10
+    variant: AHT20
+    temperature:
+      name: "Temperature"
+      id: temperature_sensor
+    humidity:
+      name: "Humidity"
+    update_interval: 60s  
+
+  
+  - platform: empty_i2c_sensor
+    name: Empty I2C sensor
+    id: i2cdev
+    address: 0x40
+    update_interval: 2s 
+
+# Capacitive touch 
+esp32_touch:
+   setup_mode: false
+#  setup_mode: True
 
 # Note that some of the click buttons may be triggered by the capacitive touch sensors.
 binary_sensor:
-  - platform: gpio
-    pin: GPIO16
-    name: "PIR Sensor"
-    device_class: motion
+  # - platform: gpio
+  #   pin: GPIO16
+  #   name: "PIR Sensor"
+  #   device_class: motion
   - platform: gpio
     name: "Button Up"
     pin:
@@ -63,6 +116,7 @@ binary_sensor:
         input: true
     filters:
       - delayed_on_off: 100ms
+
   - platform: gpio
     name: "Button Select"
     pin:
@@ -72,6 +126,7 @@ binary_sensor:
     filters:
       - delayed_on_off: 100ms
   - platform: gpio
+
     name: "Button Down"
     pin:
       number: GPIO3
@@ -79,97 +134,139 @@ binary_sensor:
         input: true
     filters:
       - delayed_on_off: 100ms
-# - platform: esp32_touch
-#   name: "Capacitive Touch 6"
-#   pin: GPIO6
-#   threshold: 20000
-# - platform: gpio
-#   pin:
-#     number: GPIO7
-#     mode:
-#       input: true
-#       pullup: true
-#     inverted: true
-#   name: "Capacitive Touch 7"
-# - platform: gpio
-#   pin:
-#     number: GPIO8
-#     mode:
-#       input: true
-#       pullup: true
-#     inverted: true
-#   name: "Capacitive Touch 8"
-# - platform: gpio
-#   pin:
-#     number: GPIO9
-#     mode:
-#       input: true
-#       pullup: true
-#     inverted: true
-#   name: "Capacitive Touch 9"
-# - platform: gpio
-#   pin:
-#     number: GPIO10
-#     mode:
-#       input: true
-#       pullup: true
-#     inverted: true
-#   name: "Capacitive Touch 10"
-# - platform: gpio
-#   pin:
-#     number: GPIO11
-#     mode:
-#       input: true
-#       pullup: true
-#     inverted: true
-#   name: "Capacitive Touch 11"
-# - platform: esp32_touch
-#   name: "Capacitive Touch 12"
-#   pin: GPIO12
-#   threshold: 20000
+  
+  # - platform: esp32_touch
+  #   name: "Capacitive Touch 6"
+  #   pin: GPIO6
+  #   threshold: 20000
+
+  # - platform: gpio
+  #   pin:
+  #     number: GPIO7
+  #     mode:
+  #       input: true
+  #       pullup: true
+  #     inverted: true
+  #   name: "Capacitive Touch 7"
+
+  # - platform: gpio
+  #   pin:
+  #     number: GPIO8
+  #     mode:
+  #       input: true
+  #       pullup: true
+  #     inverted: true
+  #   name: "Capacitive Touch 8"
+
+  # - platform: gpio
+  #   pin:
+  #     number: GPIO9
+  #     mode:
+  #       input: true
+  #       pullup: true
+  #     inverted: true
+  #   name: "Capacitive Touch 9"
+
+  # - platform: gpio
+  #   pin:
+  #     number: GPIO10
+  #     mode:
+  #       input: true
+  #       pullup: true
+  #     inverted: true
+  #   name: "Capacitive Touch 10"
+
+  # - platform: gpio
+  #   pin:
+  #     number: GPIO11
+  #     mode:
+  #       input: true
+  #       pullup: true
+  #     inverted: true
+  #   name: "Capacitive Touch 11"
+
+  # - platform: esp32_touch
+  #   name: "Capacitive Touch 12"
+  #   pin: GPIO12
+  #   threshold: 20000
 
 status_led:
   pin: GPIO37
 
-# The NeoPixel driver is not available for the ESP32-S2 when using the esp-idf framework.
-# light:
-#   - platform: neopixelbus
-#     chipset: DOTSTAR
-#     data_pin: GPIO14
-#     clock_pin: GPIO15
-#     num_leds: 5
-#     rgb_order: BRG
-#     name: "Dotstars"
+#The NeoPixel driver doens't work
+light:
+  - platform: neopixelbus
+    variant: dotstar
+
+    data_pin: GPIO14
+    clock_pin: GPIO15
+    num_leds: 5
+#    rgb_order: BRG
+
+
+    name: "Dotstars"
+    #type: BRG
+    
+    # pin: GPIOXX
+    # num_leds: 60
+    # name: "NeoPixel Light"
+
+  - platform: monochromatic
+    output: backlight_pwm
+    name: "Display Backlight"
+    id: back_light
+    restore_mode: ALWAYS_ON
+
 
 # There are currently link errors when attempting to use SPI with the esp-idf framework.
-# spi:
-#   clk_pin: GPIO36
-#   mosi_pin: GPIO35
+spi:
+  clk_pin: GPIO36
+  mosi_pin: GPIO35
+  
+
 
 # todo Enable when displaying text.
-# font:
-#   - file: "FreeMono.ttf"
-#     id: my_font
-#     size: 20
+font:
+  # - file: "FreeMono.ttf"
+  #   id: my_font
+  #   size: 20
+
+  - file: "https://github.com/IdreesInc/Monocraft/releases/download/v3.0/Monocraft.ttf"
+    id: my_font
+    size: 20    
 
 # There are currently link errors when attempting to use the display component with the esp-idf framework.
-# display:
-#   - platform: st7735
-#     model: "INITR_18BLACKTAB"
-#     reset_pin: GPIO41
-#     cs_pin: GPIO40
-#     dc_pin: GPIO39
-#     rotation: 0
-#     col_start: 0
-#     row_start: 0
-#     device_width: 240
-#     device_height: 240
-#     eight_bit_color: true
-#     lambda: |-
-#       it.printf(0, 0, id(my_font), "The sensor value is: %.1f", id(temperature_sensor).state);
+display:
+  - platform: ili9xxx
+    #model: ST7796  # got someting but fuzzy on end
+    model: ST7735
+    reset_pin: GPIO41
+    cs_pin: GPIO40
+    dc_pin: GPIO39
+    color_palette: 8BIT
+    transform: 
+      swap_xy: True
+      mirror_y: True
+
+    dimensions:
+      height: 240
+      width: 240
+    data_rate: 20MHz
+   
+    invert_colors: True
+    lambda: |-
+      it.printf(0, 0, id(my_font), "The sensor value is: %.1f", id(temperature_sensor).state);
+
+# Define a PWM output on the ESP32
+output:
+  - platform: ledc
+    pin: GPIO21
+    id: backlight_pwm
+
 
 # The ESP32 DAC component is not yet available for the ESP32-S2 when using the esp-idf framework.
 # output:
 #   - platform: esp32_dac
 #     pin: GPIO42
 #     id: dac_output
+    
